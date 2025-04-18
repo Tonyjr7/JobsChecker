@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 # Your Groq API key
 GROQ_API_KEY = settings.GROQ_API_KEY
 
-devops = """devops engineer, site reliablity engineer, platform engineer, infrastructure engineer, cloud engineer, automation engineer, systems engineer, ci/cd engineer, operations engineer, solutions architect"""
-web = """software engineer, web developer, frontend developer, backend developer, full stack developer, software developer, senior software engineer, software engineer, web application developer, javascript developer, python developer, java developer, react developer, angular developer, vue developer, node.js developer, ruby on rails developer, php developer"""
-data = """data scientist, machine learning engineer, ml engineer, ai engineer, data engineer, research scientist, applied scientist, data analyst, senior data scientist, machine learning researcher, deep learning engineer, nlp engineer, computer vision engineer, ai researcher, data science engineer, mlops engineer, ai/ml engineer, quantitative analyst, statistical analyst, predictive modeler, business intelligence engineer"""
+devops = """solution architect devops engineer site reliablity engineer platform engineer infrastructure engineer cloud engineer automation engineer systems engineer ci/cd engineer operations engineer solutions architect automation engineer"""
+web = """software engineer web developer frontend developer backend developer full stack developer software developer senior software engineer software engineer web application developer javascript developer python developer java developer react developer angular developer vue developer node.js developer ruby on rails developer php developer"""
+data = """data scientist machine learning engineer ml engineer ai engineer data engineer research scientist applied scientist data analyst senior data scientist machine learning researcher deep learning engineer nlp engineer computer vision engineer ai researcher data science engineer mlops engineer ai/ml engineer quantitative analyst statistical analyst predictive modeler business intelligence engineer"""
 
 # Profile to job titles mapping
 PROFILE_JOBS = {
@@ -27,10 +27,6 @@ PROFILE_JOBS = {
 }
 
 def process_with_groq(html: str, profile: str):
-    """
-    Pass the raw HTML content to Groq and process the response.
-    This function uses Groq to extract and decide based on the HTML page.
-    """
     # Get relevant job titles for the profile
     profile_lower = profile.lower()
     relevant_jobs = None
@@ -42,6 +38,9 @@ def process_with_groq(html: str, profile: str):
     if not relevant_jobs:
         relevant_jobs = web  # default to web if no match found
 
+    # Split foundational jobs into words for matching
+    foundational_jobs_keywords = set(relevant_jobs.lower().split(","))
+    
     # Setting up the conversation history with role and instructions
     conversation_history = [
         {
@@ -49,8 +48,9 @@ def process_with_groq(html: str, profile: str):
             "content": (
                 "You are a strict job analyzer. You will answer only in a structured format. "
                 "Your goal is to help determine if a job posting is suitable for a specific profile. "
-                f"Consider these foundational job titles that work for this profile: {relevant_jobs}. If you encounter them it works"
-                "Avoid deep interpretation — match job titles in a simple, obvious way."
+                f"Consider these foundational job titles that work for this profile: {relevant_jobs}. If you encounter them a word from them it works."
+                "Avoid deep interpretation — match job titles in a simple, obvious way.\n"
+                "None ofyour business with specific education or experiences in job description"
             )
         },
         {
@@ -61,9 +61,9 @@ def process_with_groq(html: str, profile: str):
                 f"2. Check if it's remote or based in the US. If location is not mentioned, assume it is acceptable.\n"
                 f"3. Identify if it requires security clearance or background checks.\n"
                 f"4. Estimate if travel is required more than 25%.\n"
-                f"5. See if the job clearly fits the profile of a {profile}. This means job title or description should clearly say it's for a {profile} — do not assume fit.\n\n"
+                f"5. See if the job clearly fits the profile of a {profile}. This means job title or description should clearly say it's in {relevant_jobs} if you encounter a word from there in the job title it works— do not assume fit.\n\n"
                 f"Respond **only** in the following format:\n"
-                f"Job Title: [Insert Title], Open: [true/false], Remote: [true/false], US-Based: [true/false], Clearance: [true/false], Travel: [true/false], Suitable: [true/false], Reason: [short reason if not suitable]\n\n"
+                f"Job Title: [Insert Title], Open: [true/false], Remote: [true/false], US-Based: [true/false], Clearance: [true/false], Travel: [true/false], Suitable: [true/false], Reason: [short reason if not suitable - this is important]\n\n"
                 f"Do not include anything else."
             )
         },
@@ -74,7 +74,7 @@ def process_with_groq(html: str, profile: str):
     ]
 
     # Combine system prompt with user prompt
-    final_system_prompt = "Avoid deep interpretation — match job titles in a simple, obvious way."  # or any other system prompt
+    final_system_prompt = "Avoid deep interpretation — match job titles in a simple, obvious way."
     messages = [{"role": "system", "content": final_system_prompt}] + conversation_history
 
     # Setup the request payload
@@ -96,6 +96,12 @@ def process_with_groq(html: str, profile: str):
         if response.status_code == 200:
             groq_result = response.json()["choices"][0]["message"]["content"].strip()
             logger.info("Groq processing completed successfully.")
+
+            # If foundational job title words exist in job title, force the AI to mark it as suitable
+            for word in foundational_jobs_keywords:
+                if word in groq_result.lower():
+                    groq_result = groq_result.replace("Suitable: false", "Suitable: true")
+
             return groq_result
         else:
             logger.error(f"Groq API request failed with status code {response.status_code}")

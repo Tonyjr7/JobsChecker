@@ -35,9 +35,7 @@ async def check_jobs(data: LinkRequest, profile: str = ""):
     for url in data.links:
         try:
             html_content = scrape.scrape_page(url)
-            print(profile)
             llm_response = process_with_groq(html_content, profile)
-            print(llm_response)
             groq_result = parse_response.parse_groq_response(llm_response)
 
             results.append({
