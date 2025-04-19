@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     """Class to hold application's config values."""
 
     GROQ_API_KEY: str = config("GROQ_API_KEY", default="")
+    GEMINI_API_KEY: str = config("GEMINI_API_KEY", default="")
 
 
 settings = Settings()
