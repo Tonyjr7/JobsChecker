@@ -28,6 +28,10 @@ app.add_middleware(
 class LinkRequest(BaseModel):
     links: List[str]
 
+@app.get("/")
+def home():
+    return "Welcome Home!"
+
 
 @app.post("/check-jobs")
 async def check_jobs(data: LinkRequest, profile: str = "", ai: str = ""):
