@@ -25,7 +25,11 @@ def process_with_groq(html: str, profile: str):
                 f"Consider these foundational job titles that work for this profile: {foundational_jobs_keywords}. If you encounter them a word from them it works."
                 "Avoid deep interpretation — match job titles in a simple, obvious way.\n"
                 "None ofyour business with specific education or experiences in job description"
-                "Always state why you approve"
+                "Always state why you approve\n"
+                "If one of these fields you are checking does not meet the expectations, do not approve"
+                "Your reponse should be in **very strict well structured JSON format**, this should be consistent"
+                "Reason should be precise and very short, straight to the point"
+                "With default keys: position, open, remote, us_based, clearance, travel, approved, reason - these key should never change"
             )
         },
         {
@@ -36,10 +40,9 @@ def process_with_groq(html: str, profile: str):
                 f"2. Check if it's remote or based in the US. If location is not mentioned, assume it is acceptable.\n"
                 f"3. Identify if it requires security clearance or background checks.\n"
                 f"4. Estimate if travel is required more than 25%.\n"
-                f"5. See if the job clearly fits the profile of a {profile}. This means job title or description should clearly say it's in {foundational_jobs_keywords} if you encounter a word from there in the job title it works— do not assume fit.\n\n"
-                f"Respond **only** in the following format:\n"
-                f"Job Title: [Insert Title], Open: [true/false], Remote: [true/false], US-Based: [true/false], Clearance: [true/false], Travel: [true/false], Suitable: [true/false], Reason: [short reason if not suitable - this is important]\n\n"
-                f"Do not include anything else."
+                f"5. See if the job clearly fits the profile of a {profile}. This means job title or description should clearly say it's in {foundational_jobs_keywords} if you encounter a word from there in the job title it works— do not assume fit. Just a simple reason\n\n"
+                f"Respond **only** in the your default format"
+                f"Do not include anything else.\n"
             )
         },
         {
@@ -70,13 +73,14 @@ def process_with_groq(html: str, profile: str):
 
         if response.status_code == 200:
             groq_result = response.json()["choices"][0]["message"]["content"].strip()
-            logger.info("Groq processing completed successfully.")
 
             # If foundational job title words exist in job title, force the AI to mark it as suitable
             for word in foundational_jobs_keywords:
                 if word in groq_result.lower():
                     groq_result = groq_result.replace("Suitable: false", "Suitable: true")
 
+            logger.info("Groq processing completed successfully.")
+            print(groq_result)
             return groq_result
         else:
             logger.error(f"Groq API request failed with status code {response.status_code}")

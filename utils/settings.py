@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     GROQ_API_KEY: str = config("GROQ_API_KEY", default="")
     GEMINI_API_KEY: str = config("GEMINI_API_KEY", default="")
+    DEEPSEEK_API_KEY: str = config("DEEPSEEK_API_KEY", default="")
 
 
 settings = Settings()
